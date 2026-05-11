@@ -1,0 +1,16 @@
+{
+  "name": "demo-xtream-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend de démo API type Xtream pour lecteur IPTV (contenu configurable)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "timezone": "Europe/Paris",
+    "server_name": "Demo IPTV"
+  },
+  "users": [
+    {
+      "username": "demo",
+      "password": "demo",
+      "max_connections": 5,
+      "message": "Compte démonstration — remplacez les flux par vos sources autorisées."
+    }
+  ],
+  "live_categories": [
+    { "category_id": "1", "category_name": "Chaînes démo" }
+  ],
+  "live_streams": [
+    {
+      "stream_id": 1,
+      "name": "Flux test HLS (Mux)",
+      "stream_icon": "",
+      "epg_channel_id": null,
+      "category_id": "1",
+      "custom_sid": null,
+      "tv_archive": 0,
+      "direct_source": "https://test-streams.mux.dev/x36xhLz/x36xhLz.m3u8",
+      "tv_archive_duration": 0
+    },
+    {
+      "stream_id": 2,
+      "name": "Flux test HLS (Apple)",
+      "stream_icon": "",
+      "epg_channel_id": null,
+      "category_id": "1",
+      "custom_sid": null,
+      "tv_archive": 0,
+      "direct_source": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8",
+      "tv_archive_duration": 0
+    }
+  ],
+  "vod_categories": [
+    { "category_id": "1", "category_name": "Films démo" }
+  ],
+  "vod_streams": [
+    {
+      "stream_id": 1,
+      "name": "Big Buck Bunny (extrait / test — vérifiez la licence pour votre usage)",
+      "stream_icon": "",
+      "rating": "0",
+      "category_id": "1",
+      "container_extension": "mp4",
+      "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+    }
+  ],
+  "series_categories": [
+    { "category_id": "1", "category_name": "Séries démo" }
+  ],
+  "series": [
+    {
+      "series_id": 1,
+      "name": "Sintel (court métrage — vérifiez la licence)",
+      "cover": "",
+      "plot": "Démo VOD épisode unique.",
+      "cast": "",
+      "director": "",
+      "genre": "Démo",
+      "releaseDate": "",
+      "rating": "0",
+      "category_id": "1",
+      "backdrop_path": [],
+      "youtube_trailer": null,
+      "episode_run_time": "15",
+      "category_ids": [1]
+    }
+  ],
+  "series_episodes": {
+    "1": {
+      "1": [
+        {
+          "id": 101,
+          "episode_num": 1,
+          "title": "Épisode 1",
+          "container_extension": "mp4",
+          "info": {
+            "plot": "",
+            "releasedate": "",
+            "movie_image": ""
+          },
+          "season": 1,
+          "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
+        }
+      ]
+    }
+  }
+}
