@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const stream = require("stream");
 const express = require("express");
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "..", "data");
@@ -39,12 +40,21 @@ function tsNow() {
   return Math.floor(Date.now() / 1000);
 }
 
+/** URL publique vue par les lecteurs (Coolify / Traefik : X-Forwarded-*) */
+function publicOrigin(req) {
+  const fixed = process.env.PUBLIC_BASE_URL;
+  if (fixed) return String(fixed).replace(/\/$/, "");
+  const xfHost = (req.get("x-forwarded-host") || "").split(",")[0].trim();
+  const xfProto = (req.get("x-forwarded-proto") || "").split(",")[0].trim();
+  const host = xfHost || req.get("host") || "localhost";
+  const protocol = xfProto || req.protocol || "http";
+  return `${protocol}://${host}`.replace(/\/$/, "");
+}
+
 function serverInfo(req, content) {
-  const base =
-    process.env.PUBLIC_BASE_URL ||
-    `${req.protocol}://${req.get("host")}`.replace(/\/$/, "");
-  let host = req.get("host") || "localhost";
-  let protocol = req.protocol || "http";
+  const base = publicOrigin(req);
+  let host = "localhost";
+  let protocol = "http";
   try {
     const u = new URL(base);
     host = u.host;
@@ -52,10 +62,13 @@ function serverInfo(req, content) {
   } catch {
     /* ignore */
   }
-  const port = protocol === "https" ? "443" : String(process.env.PORT || 3000);
+  const hostNoPort = host.split(":")[0];
+  const portPart = host.includes(":") ? host.split(":")[1] : null;
+  const port =
+    portPart || (protocol === "https" ? "443" : String(process.env.PORT || 3000));
   return {
-    url: host.split(":")[0],
-    port: host.includes(":") ? host.split(":")[1] : port,
+    url: hostNoPort,
+    port,
     https_port: "443",
     server_protocol: protocol,
     rtmp_port: "0",
@@ -63,6 +76,39 @@ function serverInfo(req, content) {
     timestamp_now: tsNow(),
     time_now: new Date().toISOString().slice(0, 19).replace("T", " "),
   };
+}
+
+function encodeSeg(s) {
+  return encodeURIComponent(String(s));
+}
+
+function buildMovieUrl(req, username, password, streamId, ext) {
+  const o = publicOrigin(req);
+  return `${o}/movie/${encodeSeg(username)}/${encodeSeg(password)}/${streamId}.${ext}`;
+}
+
+function buildSeriesPlayUrl(req, username, password, episodeId, ext) {
+  const o = publicOrigin(req);
+  return `${o}/series/${encodeSeg(username)}/${encodeSeg(password)}/${episodeId}.${ext}`;
+}
+
+function buildLivePlayUrl(req, username, password, streamId, ext) {
+  const o = publicOrigin(req);
+  return `${o}/live/${encodeSeg(username)}/${encodeSeg(password)}/${streamId}.${ext}`;
+}
+
+/** Résout series_episodes[seriesId] même si la clé diffère (1 vs "1") */
+function episodesBucketForSeries(content, seriesIdStr) {
+  const raw = content.series_episodes || {};
+  const sid = String(seriesIdStr ?? "").trim();
+  if (raw[sid] && typeof raw[sid] === "object") return raw[sid];
+  const num = Number(sid);
+  if (!Number.isNaN(num) && raw[String(num)] && typeof raw[String(num)] === "object")
+    return raw[String(num)];
+  for (const k of Object.keys(raw)) {
+    if (String(k) === sid || String(Number(k)) === sid) return raw[k];
+  }
+  return {};
 }
 
 function buildLiveLookup(content) {
@@ -158,7 +204,18 @@ function playerApi(req, res) {
     case "get_live_streams": {
       let rows = content.live_streams || [];
       if (cat) rows = rows.filter((r) => String(r.category_id) === cat);
-      return res.json(rows);
+      return res.json(
+        rows.map((s) => ({
+          ...s,
+          direct_source: buildLivePlayUrl(
+            req,
+            username,
+            password,
+            s.stream_id,
+            "ts"
+          ),
+        }))
+      );
     }
     case "get_vod_categories":
       return res.json(content.vod_categories || []);
@@ -168,6 +225,8 @@ function playerApi(req, res) {
       const mapped = rows.map((v) => {
         const poster =
           v.stream_icon || v.movie_image || v.cover_big || "";
+        const ext = v.container_extension || "mp4";
+        const play = buildMovieUrl(req, username, password, v.stream_id, ext);
         return {
           ...v,
           stream_icon: poster,
@@ -176,6 +235,8 @@ function playerApi(req, res) {
           cover_big: v.cover_big || poster,
           added: v.added || String(tsNow()),
           year: v.year || (v.releasedate ? String(v.releasedate).slice(0, 4) : ""),
+          stream_url: play,
+          direct_source: play,
         };
       });
       return res.json(mapped);
@@ -188,6 +249,8 @@ function playerApi(req, res) {
       if (!vod) return res.json([]);
       const poster =
         vod.movie_image || vod.cover_big || vod.stream_icon || "";
+      const ext = vod.container_extension || "mp4";
+      const play = buildMovieUrl(req, username, password, vod.stream_id, ext);
       return res.json({
         info: {
           name: vod.name || "",
@@ -219,9 +282,10 @@ function playerApi(req, res) {
           name: vod.name,
           added: String(tsNow()),
           category_id: vod.category_id,
-          container_extension: vod.container_extension || "mp4",
+          container_extension: ext,
           custom_sid: "",
-          direct_source: vod.direct_source || "",
+          direct_source: play,
+          stream_url: play,
         },
       });
     }
@@ -258,15 +322,18 @@ function playerApi(req, res) {
           seasons: [],
           info: {},
           episodes: {},
+          episodes_list: [],
         });
       }
-      const epBySeason = content.series_episodes?.[sid] || {};
+      const epBySeason = episodesBucketForSeries(content, sid);
       const episodes = {};
+      const episodes_list = [];
       const seasonKeys = Object.keys(epBySeason).sort(
         (a, b) => Number(a) - Number(b)
       );
       for (const seasonKey of seasonKeys) {
-        episodes[seasonKey] = (epBySeason[seasonKey] || []).map((ep) => {
+        const listRaw = epBySeason[seasonKey] || [];
+        const mapped = listRaw.map((ep) => {
           const baseInfo = ep.info || {
             plot: "",
             releasedate: "",
@@ -279,12 +346,16 @@ function playerApi(req, res) {
             series.cover ||
             "";
           const ext = ep.container_extension || "mp4";
-          return {
-            id: String(ep.id),
-            episode_num:
-              ep.episode_num != null && ep.episode_num !== ""
-                ? String(ep.episode_num)
-                : "1",
+          const epNum =
+            ep.episode_num != null && ep.episode_num !== ""
+              ? Number(ep.episode_num)
+              : 1;
+          const epIdNum = Number(ep.id);
+          const play = buildSeriesPlayUrl(req, username, password, ep.id, ext);
+          const sn = Number(seasonKey);
+          const row = {
+            id: Number.isFinite(epIdNum) ? epIdNum : ep.id,
+            episode_num: Number.isFinite(epNum) ? epNum : 1,
             title: ep.title,
             container_extension: ext,
             stream_icon: ep.stream_icon || epImg,
@@ -292,20 +363,26 @@ function playerApi(req, res) {
               ...baseInfo,
               movie_image: epImg || baseInfo.movie_image,
             },
-            season: String(ep.season ?? seasonKey),
+            season: Number.isFinite(sn) ? sn : 1,
             series_id: Number(series.series_id),
-            direct_source: ep.direct_source || "",
+            direct_source: play,
+            stream_url: play,
+            url: play,
             custom_sid: ep.custom_sid || "",
             added: String(ep.added || tsNow()),
           };
+          episodes_list.push(row);
+          return row;
         });
+        episodes[seasonKey] = mapped;
       }
       const seasonsArr = seasonKeys.map((sk) => {
         const list = epBySeason[sk] || [];
         const cov = series.cover || "";
         const covB = series.cover_big || series.cover || "";
+        const nid = Number(sk);
         return {
-          id: Number(sk),
+          id: Number.isFinite(nid) ? nid : 1,
           name: `Season ${sk}`,
           episode_count: list.length,
           air_date: "",
@@ -317,6 +394,13 @@ function playerApi(req, res) {
       });
       const cov = series.cover || "";
       const covB = series.cover_big || series.cover || "";
+      const seasons_episodes = seasonKeys.map((sk) => {
+        const nid = Number(sk);
+        return {
+          season: Number.isFinite(nid) ? nid : 1,
+          episodes: episodes[sk] || [],
+        };
+      });
       return res.json({
         seasons: seasonsArr,
         info: {
@@ -339,6 +423,8 @@ function playerApi(req, res) {
           last_modified: String(series.last_modified || tsNow()),
         },
         episodes,
+        episodes_list,
+        seasons_episodes,
       });
     }
     default:
@@ -361,6 +447,54 @@ function redirectIfAuthed(req, res, username, password, id, lookup) {
   return res.redirect(302, url);
 }
 
+async function proxyIfAuthed(req, res, username, password, id, lookup) {
+  let content;
+  try {
+    content = loadContent();
+  } catch (e) {
+    return res.status(500).send("Config error");
+  }
+  if (!authUser(content, username, password)) {
+    return res.status(403).send("Forbidden");
+  }
+  const url = lookup.get(String(id));
+  if (!url) return res.status(404).send("Not found");
+  try {
+    const headers = {};
+    if (req.headers.range) headers.Range = req.headers.range;
+    const upstream = await fetch(url, { headers, redirect: "follow" });
+    const pass = [
+      "content-type",
+      "content-length",
+      "content-range",
+      "accept-ranges",
+      "cache-control",
+    ];
+    for (const h of pass) {
+      const v = upstream.headers.get(h);
+      if (v) res.setHeader(h, v);
+    }
+    res.status(upstream.status);
+    if (!upstream.body) {
+      res.end();
+      return;
+    }
+    const nodeStream = stream.Readable.fromWeb(upstream.body);
+    nodeStream.on("error", () => res.destroy());
+    res.on("close", () => {
+      try {
+        nodeStream.destroy();
+      } catch {
+        /* ignore */
+      }
+    });
+    nodeStream.pipe(res);
+  } catch (err) {
+    if (!res.headersSent) res.status(502).send(String(err.message));
+    else res.destroy();
+  }
+}
+
 function createApp() {
   const app = express();
   app.set("trust proxy", 1);
@@ -372,19 +506,40 @@ function createApp() {
 
   app.get("/live/:username/:password/:streamId", (req, res) => {
     const content = loadContent();
-    redirectIfAuthed(req, res, req.params.username, req.params.password, req.params.streamId, buildLiveLookup(content));
+    redirectIfAuthed(
+      req,
+      res,
+      req.params.username,
+      req.params.password,
+      path.parse(req.params.streamId).name,
+      buildLiveLookup(content)
+    );
   });
 
   app.get("/movie/:username/:password/:vodId", (req, res) => {
     const content = loadContent();
     const id = path.parse(req.params.vodId).name;
-    redirectIfAuthed(req, res, req.params.username, req.params.password, id, buildVodLookup(content));
+    void proxyIfAuthed(
+      req,
+      res,
+      req.params.username,
+      req.params.password,
+      id,
+      buildVodLookup(content)
+    );
   });
 
   app.get("/series/:username/:password/:episodeId", (req, res) => {
     const content = loadContent();
     const id = path.parse(req.params.episodeId).name;
-    redirectIfAuthed(req, res, req.params.username, req.params.password, id, buildSeriesEpisodeLookup(content));
+    void proxyIfAuthed(
+      req,
+      res,
+      req.params.username,
+      req.params.password,
+      id,
+      buildSeriesEpisodeLookup(content)
+    );
   });
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
