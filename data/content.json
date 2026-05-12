@@ -49,7 +49,7 @@
       "stream_icon": "https://picsum.photos/id/1003/400/600.jpg",
       "movie_image": "https://picsum.photos/id/1003/800/1200.jpg",
       "cover_big": "https://picsum.photos/id/1003/800/1200.jpg",
-      "plot": "Court métrage open source (Blender Foundation), souvent utilisé comme démo vidéo.",
+      "plot": "Court métrage open source (Blender Foundation). Ici : flux HLS public de test (Mux), car l’ancien hébergeur Google renvoie 403.",
       "cast": "",
       "director": "Sacha Goedegebure",
       "genre": "Animation",
@@ -57,8 +57,8 @@
       "country": "",
       "rating": "8",
       "category_id": "1",
-      "container_extension": "mp4",
-      "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      "container_extension": "m3u8",
+      "direct_source": "https://test-streams.mux.dev/x36xhLz/x36xhLz.m3u8",
       "backdrop_path": [
         "https://picsum.photos/id/1003/1280/720.jpg"
       ]
@@ -69,7 +69,7 @@
       "stream_icon": "https://picsum.photos/id/1041/400/600.jpg",
       "movie_image": "https://picsum.photos/id/1041/800/1200.jpg",
       "cover_big": "https://picsum.photos/id/1041/800/1200.jpg",
-      "plot": "Entrée uniquement pour tester le contrôle parental / les filtres d’âge dans l’app. Aucun contenu sensible : le flux est un clip de démonstration public (même type que les autres démos).",
+      "plot": "Entrée uniquement pour tester le contrôle parental / les filtres d’âge dans l’app. Aucun contenu sensible : flux HLS public de test (Apple), pas de vidéo adulte.",
       "cast": "",
       "director": "",
       "genre": "Test",
@@ -77,8 +77,8 @@
       "country": "",
       "rating": "18",
       "category_id": "2",
-      "container_extension": "mp4",
-      "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+      "container_extension": "m3u8",
+      "direct_source": "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8",
       "backdrop_path": [
         "https://picsum.photos/id/1041/1280/720.jpg"
       ]
@@ -116,14 +116,14 @@
           "episode_num": 1,
           "title": "Épisode 1",
           "stream_icon": "https://picsum.photos/id/1062/400/600.jpg",
-          "container_extension": "mp4",
+          "container_extension": "m3u8",
           "info": {
-            "plot": "Épisode de démonstration.",
+            "plot": "Épisode de démonstration (flux HLS public Mux).",
             "releasedate": "2010",
             "movie_image": "https://picsum.photos/id/1062/400/600.jpg"
           },
           "season": 1,
-          "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
+          "direct_source": "https://test-streams.mux.dev/x36xhLz/x36xhLz.m3u8"
         }
       ]
     }
