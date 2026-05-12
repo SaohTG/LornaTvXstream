@@ -103,9 +103,19 @@ function mergeParams(req) {
   return out;
 }
 
+/** Plusieurs lecteurs envoient l’action en casse variable ou series au lieu de series_id */
+function normAction(a) {
+  return String(a || "").trim().toLowerCase();
+}
+
 function playerApi(req, res) {
-  const { username, password, action, category_id, series_id, vod_id } =
-    mergeParams(req);
+  const params = mergeParams(req);
+  const action = normAction(params.action);
+  const username = params.username;
+  const password = params.password;
+  const category_id = params.category_id;
+  const series_id = params.series_id ?? params.series;
+  const vod_id = params.vod_id ?? params.vod_stream_id;
   let content;
   try {
     content = loadContent();
@@ -120,7 +130,7 @@ function playerApi(req, res) {
     });
   }
 
-  if (!action) {
+  if (!params.action || !String(params.action).trim()) {
     const exp = String(tsNow() + 365 * 24 * 3600);
     return res.json({
       user_info: {
@@ -155,7 +165,20 @@ function playerApi(req, res) {
     case "get_vod_streams": {
       let rows = content.vod_streams || [];
       if (cat) rows = rows.filter((r) => String(r.category_id) === cat);
-      return res.json(rows);
+      const mapped = rows.map((v) => {
+        const poster =
+          v.stream_icon || v.movie_image || v.cover_big || "";
+        return {
+          ...v,
+          stream_icon: poster,
+          icon: v.icon || poster,
+          movie_image: v.movie_image || poster,
+          cover_big: v.cover_big || poster,
+          added: v.added || String(tsNow()),
+          year: v.year || (v.releasedate ? String(v.releasedate).slice(0, 4) : ""),
+        };
+      });
+      return res.json(mapped);
     }
     case "get_vod_info": {
       const vid = String(vod_id || "");
@@ -207,16 +230,43 @@ function playerApi(req, res) {
     case "get_series": {
       let rows = content.series || [];
       if (cat) rows = rows.filter((r) => String(r.category_id) === cat);
-      return res.json(rows);
+      const ts = String(tsNow());
+      return res.json(
+        rows.map((s) => {
+          const cover = s.cover || s.stream_icon || s.cover_big || "";
+          const coverBig = s.cover_big || s.cover || "";
+          return {
+            ...s,
+            id: s.id ?? s.series_id,
+            series_id: s.series_id,
+            cover,
+            cover_big: coverBig || cover,
+            stream_icon: s.stream_icon || cover,
+            last_modified: s.last_modified || ts,
+          };
+        })
+      );
     }
     case "get_series_info": {
-      const sid = String(series_id || "");
-      const series = (content.series || []).find((s) => String(s.series_id) === sid);
-      if (!series) return res.json([]);
-      const seasons = content.series_episodes?.[sid] || {};
+      const sidRaw = series_id ?? params.series_id ?? params.series;
+      const sid = String(sidRaw ?? "").trim();
+      const series = (content.series || []).find(
+        (s) => String(s.series_id) === sid
+      );
+      if (!series) {
+        return res.json({
+          seasons: [],
+          info: {},
+          episodes: {},
+        });
+      }
+      const epBySeason = content.series_episodes?.[sid] || {};
       const episodes = {};
-      for (const seasonKey of Object.keys(seasons)) {
-        episodes[seasonKey] = (seasons[seasonKey] || []).map((ep) => {
+      const seasonKeys = Object.keys(epBySeason).sort(
+        (a, b) => Number(a) - Number(b)
+      );
+      for (const seasonKey of seasonKeys) {
+        episodes[seasonKey] = (epBySeason[seasonKey] || []).map((ep) => {
           const baseInfo = ep.info || {
             plot: "",
             releasedate: "",
@@ -226,40 +276,67 @@ function playerApi(req, res) {
             baseInfo.movie_image ||
             ep.stream_icon ||
             ep.movie_image ||
+            series.cover ||
             "";
+          const ext = ep.container_extension || "mp4";
           return {
-            id: ep.id,
-            episode_num: ep.episode_num,
+            id: String(ep.id),
+            episode_num:
+              ep.episode_num != null && ep.episode_num !== ""
+                ? String(ep.episode_num)
+                : "1",
             title: ep.title,
-            container_extension: ep.container_extension || "mp4",
+            container_extension: ext,
             stream_icon: ep.stream_icon || epImg,
             info: {
               ...baseInfo,
               movie_image: epImg || baseInfo.movie_image,
             },
             season: String(ep.season ?? seasonKey),
+            series_id: Number(series.series_id),
             direct_source: ep.direct_source || "",
-            custom_sid: "",
-            added: String(tsNow()),
+            custom_sid: ep.custom_sid || "",
+            added: String(ep.added || tsNow()),
           };
         });
       }
+      const seasonsArr = seasonKeys.map((sk) => {
+        const list = epBySeason[sk] || [];
+        const cov = series.cover || "";
+        const covB = series.cover_big || series.cover || "";
+        return {
+          id: Number(sk),
+          name: `Season ${sk}`,
+          episode_count: list.length,
+          air_date: "",
+          cover: cov,
+          cover_big: covB,
+          overview: "",
+          vote_average: 0,
+        };
+      });
+      const cov = series.cover || "";
+      const covB = series.cover_big || series.cover || "";
       return res.json({
+        seasons: seasonsArr,
         info: {
+          series_id: Number(series.series_id),
           name: series.name,
-          cover: series.cover || "",
-          cover_big: series.cover_big || series.cover || "",
+          cover: cov,
+          cover_big: covB,
+          stream_icon: series.stream_icon || cov,
           plot: series.plot || "",
           cast: series.cast || "",
           director: series.director || "",
           genre: series.genre || "",
           releaseDate: series.releaseDate || "",
-          rating: series.rating || "0",
+          rating: String(series.rating ?? "0"),
           category_id: series.category_id,
           backdrop_path: series.backdrop_path || [],
           youtube_trailer: series.youtube_trailer || "",
           episode_run_time: series.episode_run_time || "",
           category_ids: series.category_ids || [Number(series.category_id)],
+          last_modified: String(series.last_modified || tsNow()),
         },
         episodes,
       });
