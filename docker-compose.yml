@@ -9,8 +9,9 @@ services:
     volumes:
       # Persistance : édite ce fichier sur le serveur pour ajouter films / séries / chaînes
       - demo-xtream-data:/app/data
+    # Hôte:3088 -> conteneur:3000 (évite le conflit si le port 3000 est déjà pris sur le VPS)
     ports:
-      - "3000:3000"
+      - "3088:3000"
     expose:
       - "3000"
     healthcheck:

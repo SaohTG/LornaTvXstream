@@ -104,7 +104,8 @@ function mergeParams(req) {
 }
 
 function playerApi(req, res) {
-  const { username, password, action, category_id, series_id } = mergeParams(req);
+  const { username, password, action, category_id, series_id, vod_id } =
+    mergeParams(req);
   let content;
   try {
     content = loadContent();
@@ -156,6 +157,51 @@ function playerApi(req, res) {
       if (cat) rows = rows.filter((r) => String(r.category_id) === cat);
       return res.json(rows);
     }
+    case "get_vod_info": {
+      const vid = String(vod_id || "");
+      const vod = (content.vod_streams || []).find(
+        (v) => String(v.stream_id) === vid
+      );
+      if (!vod) return res.json([]);
+      const poster =
+        vod.movie_image || vod.cover_big || vod.stream_icon || "";
+      return res.json({
+        info: {
+          name: vod.name || "",
+          o_name: vod.name || "",
+          cover_big: poster,
+          movie_image: poster,
+          releasedate: vod.releasedate || "",
+          episode_run_time: vod.episode_run_time || "",
+          youtube_trailer: vod.youtube_trailer || "",
+          director: vod.director || "",
+          actors: vod.cast || "",
+          cast: vod.cast || "",
+          description: vod.plot || "",
+          plot: vod.plot || "",
+          country: vod.country || "",
+          genre: vod.genre || "",
+          backdrop_path: Array.isArray(vod.backdrop_path)
+            ? vod.backdrop_path
+            : [],
+          duration_secs: Number(vod.duration_secs) || 0,
+          duration: vod.duration || "",
+          video: [],
+          audio: [],
+          bitrate: 0,
+          rating: String(vod.rating ?? ""),
+        },
+        movie_data: {
+          stream_id: vod.stream_id,
+          name: vod.name,
+          added: String(tsNow()),
+          category_id: vod.category_id,
+          container_extension: vod.container_extension || "mp4",
+          custom_sid: "",
+          direct_source: vod.direct_source || "",
+        },
+      });
+    }
     case "get_series_categories":
       return res.json(content.series_categories || []);
     case "get_series": {
@@ -170,22 +216,39 @@ function playerApi(req, res) {
       const seasons = content.series_episodes?.[sid] || {};
       const episodes = {};
       for (const seasonKey of Object.keys(seasons)) {
-        episodes[seasonKey] = (seasons[seasonKey] || []).map((ep) => ({
-          id: ep.id,
-          episode_num: ep.episode_num,
-          title: ep.title,
-          container_extension: ep.container_extension || "mp4",
-          info: ep.info || { plot: "", releasedate: "", movie_image: "" },
-          season: String(ep.season ?? seasonKey),
-          direct_source: ep.direct_source || "",
-          custom_sid: "",
-          added: String(tsNow()),
-        }));
+        episodes[seasonKey] = (seasons[seasonKey] || []).map((ep) => {
+          const baseInfo = ep.info || {
+            plot: "",
+            releasedate: "",
+            movie_image: "",
+          };
+          const epImg =
+            baseInfo.movie_image ||
+            ep.stream_icon ||
+            ep.movie_image ||
+            "";
+          return {
+            id: ep.id,
+            episode_num: ep.episode_num,
+            title: ep.title,
+            container_extension: ep.container_extension || "mp4",
+            stream_icon: ep.stream_icon || epImg,
+            info: {
+              ...baseInfo,
+              movie_image: epImg || baseInfo.movie_image,
+            },
+            season: String(ep.season ?? seasonKey),
+            direct_source: ep.direct_source || "",
+            custom_sid: "",
+            added: String(tsNow()),
+          };
+        });
       }
       return res.json({
         info: {
           name: series.name,
           cover: series.cover || "",
+          cover_big: series.cover_big || series.cover || "",
           plot: series.plot || "",
           cast: series.cast || "",
           director: series.director || "",

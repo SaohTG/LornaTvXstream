@@ -18,7 +18,7 @@
     {
       "stream_id": 1,
       "name": "Flux test HLS (Mux)",
-      "stream_icon": "",
+      "stream_icon": "https://picsum.photos/id/1060/400/225.jpg",
       "epg_channel_id": null,
       "category_id": "1",
       "custom_sid": null,
@@ -29,7 +29,7 @@
     {
       "stream_id": 2,
       "name": "Flux test HLS (Apple)",
-      "stream_icon": "",
+      "stream_icon": "https://picsum.photos/id/364/400/225.jpg",
       "epg_channel_id": null,
       "category_id": "1",
       "custom_sid": null,
@@ -45,11 +45,22 @@
     {
       "stream_id": 1,
       "name": "Big Buck Bunny (extrait / test — vérifiez la licence pour votre usage)",
-      "stream_icon": "",
-      "rating": "0",
+      "stream_icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster.jpg/400px-Big_buck_bunny_poster.jpg",
+      "movie_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster.jpg/800px-Big_buck_bunny_poster.jpg",
+      "cover_big": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster.jpg/800px-Big_buck_bunny_poster.jpg",
+      "plot": "Court métrage open source (Blender Foundation), souvent utilisé comme démo vidéo.",
+      "cast": "",
+      "director": "Sacha Goedegebure",
+      "genre": "Animation",
+      "releasedate": "2008",
+      "country": "",
+      "rating": "8",
       "category_id": "1",
       "container_extension": "mp4",
-      "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+      "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      "backdrop_path": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Big_buck_bunny_poster.jpg/1280px-Big_buck_bunny_poster.jpg"
+      ]
     }
   ],
   "series_categories": [
@@ -59,15 +70,18 @@
     {
       "series_id": 1,
       "name": "Sintel (court métrage — vérifiez la licence)",
-      "cover": "",
+      "cover": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Sintel_poster.jpg/400px-Sintel_poster.jpg",
+      "cover_big": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Sintel_poster.jpg/800px-Sintel_poster.jpg",
       "plot": "Démo VOD épisode unique.",
       "cast": "",
-      "director": "",
+      "director": "Colin Levy",
       "genre": "Démo",
-      "releaseDate": "",
-      "rating": "0",
+      "releaseDate": "2010",
+      "rating": "8",
       "category_id": "1",
-      "backdrop_path": [],
+      "backdrop_path": [
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Sintel_poster.jpg/1280px-Sintel_poster.jpg"
+      ],
       "youtube_trailer": null,
       "episode_run_time": "15",
       "category_ids": [1]
@@ -80,11 +94,12 @@
           "id": 101,
           "episode_num": 1,
           "title": "Épisode 1",
+          "stream_icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Sintel_poster.jpg/400px-Sintel_poster.jpg",
           "container_extension": "mp4",
           "info": {
-            "plot": "",
-            "releasedate": "",
-            "movie_image": ""
+            "plot": "Épisode de démonstration.",
+            "releasedate": "2010",
+            "movie_image": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Sintel_poster.jpg/400px-Sintel_poster.jpg"
           },
           "season": 1,
           "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4"
