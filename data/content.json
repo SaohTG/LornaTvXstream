@@ -39,7 +39,8 @@
     }
   ],
   "vod_categories": [
-    { "category_id": "1", "category_name": "Films démo" }
+    { "category_id": "1", "category_name": "Films démo" },
+    { "category_id": "2", "category_name": "Test contrôle parental (fictif)" }
   ],
   "vod_streams": [
     {
@@ -60,6 +61,26 @@
       "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
       "backdrop_path": [
         "https://picsum.photos/id/1003/1280/720.jpg"
+      ]
+    },
+    {
+      "stream_id": 2,
+      "name": "+18 — test (démo factice, vidéo anodine)",
+      "stream_icon": "https://picsum.photos/id/1041/400/600.jpg",
+      "movie_image": "https://picsum.photos/id/1041/800/1200.jpg",
+      "cover_big": "https://picsum.photos/id/1041/800/1200.jpg",
+      "plot": "Entrée uniquement pour tester le contrôle parental / les filtres d’âge dans l’app. Aucun contenu sensible : le flux est un clip de démonstration public (même type que les autres démos).",
+      "cast": "",
+      "director": "",
+      "genre": "Test",
+      "releasedate": "2026",
+      "country": "",
+      "rating": "18",
+      "category_id": "2",
+      "container_extension": "mp4",
+      "direct_source": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+      "backdrop_path": [
+        "https://picsum.photos/id/1041/1280/720.jpg"
       ]
     }
   ],
